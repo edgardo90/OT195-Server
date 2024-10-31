@@ -78,7 +78,7 @@ app.get("/api/superhero/:id", async (req, res) => {
     res.status(500).json({ error: "Error fetching data from SuperHero API" });
   }
 });
-
+//aca termina
 
 
 // catch 404 and forward to error handler
