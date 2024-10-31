@@ -61,6 +61,7 @@ app.get("/api/superhero/search/:character", async (req, res) => {
   const character = req.params.character;
   try {
     const response = await axios.get(`https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`);
+    console.log(await axios.get(`https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/super`))
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching data from SuperHero API:", error);
