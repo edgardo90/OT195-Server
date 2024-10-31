@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
 const fileUpload = require("express-fileupload");
+const https = require("https");
 
 require("dotenv").config();
 
@@ -57,17 +58,29 @@ app.use("/members", membersRouter);
 app.use("/upload", uploadRouter);
 
 // Rutas de proxy para SuperHero API
-app.get("/api/superhero/search/:character", async (req, res) => {
+app.get("/api/superhero/search/:character", (req, res) => {
   const character = req.params.character;
-  try {
-    //const response = await axios.get(`https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`);
-    const response = await axios.get("https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/sup");
-    res.json(response.data);
-  } catch (error) {
+  const url = `https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`;
+  https.get(url, (apiRes) => {
+    let data = "";
+    apiRes.on("data", (chunk) => {
+      data += chunk;
+    });
+    apiRes.on("end", () => {
+      try {
+        const parsedData = JSON.parse(data);
+        return res.json(parsedData); // Asegura el fin del flujo
+      } catch (error) {
+        console.error("Error parsing data from SuperHero API:", error);
+        return res.status(500).json({ error: "Error parsing data from SuperHero API", details: error.message });
+      }
+    });
+  }).on("error", (error) => {
     console.error("Error fetching data from SuperHero API:", error);
-    res.status(500).json({ error: "Error fetching data from SuperHero API" , data:error });
-  }
-});
+    return res.status(500).json({ error: "Error fetching data from SuperHero API", details: error.message });
+  });
+})
+
 
 app.get("/api/superhero/:id", async (req, res) => {
   const id = req.params.id;
@@ -80,6 +93,7 @@ app.get("/api/superhero/:id", async (req, res) => {
   }
 });
 //aca termina
+
 
 
 // catch 404 and forward to error handler
