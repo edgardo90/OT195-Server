@@ -56,6 +56,30 @@ app.use("/categories", categoriesRouter);
 app.use("/members", membersRouter);
 app.use("/upload", uploadRouter);
 
+// Rutas de proxy para SuperHero API
+app.get("/api/superhero/search/:character", async (req, res) => {
+  const character = req.params.character;
+  try {
+    const response = await axios.get(`https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching data from SuperHero API:", error);
+    res.status(500).json({ error: "Error fetching data from SuperHero API" });
+  }
+});
+
+app.get("/api/superhero/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const response = await axios.get(`https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/${id}`);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching data from SuperHero API:", error);
+    res.status(500).json({ error: "Error fetching data from SuperHero API" });
+  }
+});
+
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
