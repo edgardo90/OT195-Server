@@ -5,7 +5,7 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
 const fileUpload = require("express-fileupload");
-const https = require("https");
+const axios = require("axios");
 
 require("dotenv").config();
 
@@ -58,58 +58,30 @@ app.use("/members", membersRouter);
 app.use("/upload", uploadRouter);
 
 // Rutas de proxy para SuperHero API
-app.get("/api/superhero/search/:character", (req, res) => {
+app.get("/api/superhero/search/:character", async (req, res) => {
   const character = req.params.character;
   const url = `https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`;
-
-  https.get(url, (apiRes) => {
-    let data = "";
-    // Verificar el tipo de contenido
-    const contentType = apiRes.headers["content-type"];
-    if (!contentType || !contentType.includes("application/json")) {
-      console.error("Expected JSON but received:", contentType);
-      apiRes.on("data", (chunk) => { data += chunk; });
-      apiRes.on("end", () => {
-        return res.status(500).json({ 
-          error: "Unexpected content type",
-          statusCode: apiRes.statusCode,
-          contentType, 
-          headers: apiRes.headers,
-          body: data 
-        });
-      });
-      return;
-    }
-    // Concatenar los datos recibidos
-    apiRes.on("data", (chunk) => {
-      data += chunk;
+  try {
+    const response = await axios.get(url);
+    // Devuelve la respuesta JSON al cliente
+    return res.json(response.data);
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error("Error fetching data from SuperHero API:", error.message);
+    // Enviar detalles de error al cliente
+    return res.status(500).json({
+      error: "Error fetching data from SuperHero API",
+      message: error.message,
+      status: error.response?.status || "No status available",
+      headers: error.response?.headers || "No headers available",
+      data: error.response?.data || "No response data",
+      request: {
+        method: error.config?.method,
+        url: error.config?.url,
+        headers: error.config?.headers,
+      },
     });
-    // Procesar la respuesta completa
-    apiRes.on("end", () => {
-      try {
-        const parsedData = JSON.parse(data);
-        return res.json(parsedData);
-      } catch (error) {
-        console.error("Error parsing JSON from SuperHero API:", error);
-        return res.status(500).json({ 
-          error: "Error parsing JSON", 
-          details: error.message,
-          statusCode: apiRes.statusCode,
-          headers: apiRes.headers,
-          rawData: data
-        });
-      }
-    });
-  }).on("error", (error) => {
-    console.error("Error fetching data from SuperHero API:", error);
-    return res.status(500).json({ 
-      error: "Error fetching data from SuperHero API", 
-      details: error.message,
-      code: error.code,
-      errno: error.errno,
-      syscall: error.syscall
-    });
-  });
+  }
 });
 
 
