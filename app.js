@@ -61,25 +61,56 @@ app.use("/upload", uploadRouter);
 app.get("/api/superhero/search/:character", (req, res) => {
   const character = req.params.character;
   const url = `https://superheroapi.com/api/b2db602f073241ccf79529027610df4d/search/${character}`;
+
   https.get(url, (apiRes) => {
     let data = "";
+    // Verificar el tipo de contenido
+    const contentType = apiRes.headers["content-type"];
+    if (!contentType || !contentType.includes("application/json")) {
+      console.error("Expected JSON but received:", contentType);
+      apiRes.on("data", (chunk) => { data += chunk; });
+      apiRes.on("end", () => {
+        return res.status(500).json({ 
+          error: "Unexpected content type",
+          statusCode: apiRes.statusCode,
+          contentType, 
+          headers: apiRes.headers,
+          body: data 
+        });
+      });
+      return;
+    }
+    // Concatenar los datos recibidos
     apiRes.on("data", (chunk) => {
       data += chunk;
     });
+    // Procesar la respuesta completa
     apiRes.on("end", () => {
       try {
         const parsedData = JSON.parse(data);
-        return res.json(parsedData); // Asegura el fin del flujo
+        return res.json(parsedData);
       } catch (error) {
-        console.error("Error parsing data from SuperHero API:", error);
-        return res.status(500).json({ error: "Error parsing data from SuperHero API", details: error.message });
+        console.error("Error parsing JSON from SuperHero API:", error);
+        return res.status(500).json({ 
+          error: "Error parsing JSON", 
+          details: error.message,
+          statusCode: apiRes.statusCode,
+          headers: apiRes.headers,
+          rawData: data
+        });
       }
     });
   }).on("error", (error) => {
     console.error("Error fetching data from SuperHero API:", error);
-    return res.status(500).json({ error: "Error fetching data from SuperHero API", details: error.message });
+    return res.status(500).json({ 
+      error: "Error fetching data from SuperHero API", 
+      details: error.message,
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall
+    });
   });
-})
+});
 
 
 app.get("/api/superhero/:id", async (req, res) => {
